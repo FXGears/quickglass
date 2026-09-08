@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/FXGears/quickglass/releases/download/v0.11.0/quickglass.exe",
-            "hash": "PLACEHOLDER_SHA256"
+            "hash": "35F28355B7A9B8EDB6AEBD40B3D1F024C55FF8EEF563EB4F74E28C284567FBE1"
         }
     },
     "bin": "quickglass.exe",

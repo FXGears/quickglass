@@ -9,7 +9,7 @@ InstallerType: portable
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/FXGears/quickglass/releases/download/v0.11.0/quickglass.exe
-  InstallerSha256: PLACEHOLDER_SHA256
+  InstallerSha256: 35F28355B7A9B8EDB6AEBD40B3D1F024C55FF8EEF563EB4F74E28C284567FBE1
   PortableCommandAlias: quickglass
   FileExtensions:
   - md
