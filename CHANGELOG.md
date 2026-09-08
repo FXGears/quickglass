@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.10.1
+
+New application and file-association icon. The tilted double-pane now glows neon
+cyan on a transparent background instead of sitting washed-out on a dark box, so it
+reads on both light and dark taskbars and Explorer backgrounds. Icons are generated
+at every size the `.ico` carries, with the glow and stroke tuned per size so small
+icons stay legible instead of collapsing into a blob. The social preview card now
+carries the icon on its right side.
+
+No code changes; binary behaviour is identical to 0.10.0.
+
 ## v0.10.0
 
 **Startup no longer flashes white.** The window stays hidden until the document has
