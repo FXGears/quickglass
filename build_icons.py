@@ -1,4 +1,4 @@
-"""Generate ViewMD icon assets: transparent-background, neon-glowing tilted panes.
+"""Generate QuickGlass icon assets: transparent-background, neon-glowing tilted panes.
 
 PIL-only (no native SVG/cairo dependency). Renders at high resolution with a real
 Gaussian-blur glow, then downsamples to each target size for clean edges.

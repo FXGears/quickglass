@@ -7,8 +7,8 @@ correct output looks like, so a wrong render is obvious without a reference open
 Open the same file in both renderers to compare:
 
 ```
-viewmd.exe resources\markdown-test.md
-viewmd.exe resources\markdown-test.md --beta_render
+quickglass.exe resources\markdown-test.md
+quickglass.exe resources\markdown-test.md --beta_render
 ```
 
 ---
@@ -119,9 +119,9 @@ themselves produce no visible output.*
 
 ## 6. Images
 
-Inline image: ![ViewMD icon](icon-64.png)
+Inline image: ![QuickGlass icon](icon-64.png)
 
-Image with title: ![ViewMD icon](icon-64.png "The icon")
+Image with title: ![QuickGlass icon](icon-64.png "The icon")
 
 Reference image: ![reference form][img-ref]
 

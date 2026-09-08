@@ -1,16 +1,16 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
-PackageIdentifier: vRED.ViewMD
-PackageVersion: 0.10.1
+PackageIdentifier: vRED.QuickGlass
+PackageVersion: 0.11.0
 Platform:
 - Windows.Desktop
 MinimumOSVersion: 10.0.17763.0
 InstallerType: portable
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/FXGears/viewmd/releases/download/v0.10.1/viewmd.exe
-  InstallerSha256: DC8754CF2EE52848A8375582CEB0FC21BF396444D7348513D0009024409A51F1
-  PortableCommandAlias: viewmd
+  InstallerUrl: https://github.com/FXGears/quickglass/releases/download/v0.11.0/quickglass.exe
+  InstallerSha256: PLACEHOLDER_SHA256
+  PortableCommandAlias: quickglass
   FileExtensions:
   - md
   - markdown

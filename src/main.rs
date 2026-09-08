@@ -119,21 +119,21 @@ fn sweep_orphan_profiles(current: &str) {
         let Ok(name) = entry.file_name().into_string() else {
             continue;
         };
-        let Some(pid) = name.strip_prefix("viewmd-") else {
+        let Some(pid) = name.strip_prefix("quickglass-") else {
             continue;
         };
         if name == current {
             continue;
         }
 
-        // `viewmd-<pid>` is a profile folder; `viewmd-<pid>.lock` is its lock file.
+        // `quickglass-<pid>` is a profile folder; `quickglass-<pid>.lock` is its lock file.
         // Either entry is enough to identify the pair.
         let bare = pid.strip_suffix(".lock").unwrap_or(pid);
         if bare.is_empty() || !bare.chars().all(|c| c.is_ascii_digit()) {
             continue;
         }
-        let dir = temp.join(format!("viewmd-{bare}"));
-        let lock_path = temp.join(format!("viewmd-{bare}.lock"));
+        let dir = temp.join(format!("quickglass-{bare}"));
+        let lock_path = temp.join(format!("quickglass-{bare}.lock"));
 
         if let Some(lock) = lock_profile(&lock_path) {
             let _ = std::fs::remove_dir_all(&dir);
@@ -145,9 +145,9 @@ fn sweep_orphan_profiles(current: &str) {
 
 /// Collects elapsed-time checkpoints across startup.
 ///
-/// Inert unless `VIEWMD_TRACE` is set in the environment, so the release build
+/// Inert unless `QUICKGLASS_TRACE` is set in the environment, so the release build
 /// carries only one environment lookup and no I/O. When enabled, one line per
-/// launch is appended to `%TEMP%\viewmd-startup.log` at the moment the window
+/// launch is appended to `%TEMP%\quickglass-startup.log` at the moment the window
 /// becomes visible.
 struct StartupTrace {
     start: std::time::Instant,
@@ -161,7 +161,7 @@ impl StartupTrace {
         Self {
             start: std::time::Instant::now(),
             marks: Vec::new(),
-            enabled: std::env::var_os("VIEWMD_TRACE").is_some(),
+            enabled: std::env::var_os("QUICKGLASS_TRACE").is_some(),
         }
     }
 
@@ -181,7 +181,7 @@ impl StartupTrace {
             return;
         }
         use std::io::Write;
-        let path = std::env::temp_dir().join("viewmd-startup.log");
+        let path = std::env::temp_dir().join("quickglass-startup.log");
         let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else {
             return;
         };
@@ -239,15 +239,15 @@ fn main() {
             Ok(content) => content,
             Err(e) => format!("# Error\n\nCould not read file: `{path}`\n\n```\n{e}\n```"),
         },
-        None => String::from("# ViewMD\n\nNo file specified.\n\nUsage: `viewmd <file.md>`"),
+        None => String::from("# QuickGlass\n\nNo file specified.\n\nUsage: `quickglass <file.md>`"),
     };
 
     let title = match &file_arg {
         Some(path) => {
             let path = std::path::Path::new(path);
-            format!("{} — ViewMD", path.file_name().unwrap_or_default().to_string_lossy())
+            format!("{} — QuickGlass", path.file_name().unwrap_or_default().to_string_lossy())
         }
-        None => String::from("ViewMD"),
+        None => String::from("QuickGlass"),
     };
 
     trace.borrow_mut().mark("file_read");
@@ -268,7 +268,7 @@ fn main() {
     // %LOCALAPPDATA%. The persistent profile grew to ~30 MB and kept regrowing every
     // run, dominating the on-disk footprint. A per-process folder is reclaimed by the
     // next launch, so nothing accumulates across runs.
-    let profile_name = format!("viewmd-{}", std::process::id());
+    let profile_name = format!("quickglass-{}", std::process::id());
     let temp = std::env::temp_dir();
     let data_dir = temp.join(&profile_name);
     // Held for the lifetime of the process so other instances leave this profile alone.

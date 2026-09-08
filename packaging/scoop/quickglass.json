@@ -1,0 +1,21 @@
+{
+    "version": "0.11.0",
+    "description": "The fastest way to read a markdown file on Windows. Under 1 MB. No bloat.",
+    "homepage": "https://volatility.red",
+    "license": "GPL-3.0-only",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/FXGears/quickglass/releases/download/v0.11.0/quickglass.exe",
+            "hash": "PLACEHOLDER_SHA256"
+        }
+    },
+    "bin": "quickglass.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/FXGears/quickglass/releases/download/v$version/quickglass.exe"
+            }
+        }
+    }
+}

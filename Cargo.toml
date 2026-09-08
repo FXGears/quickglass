@@ -1,8 +1,8 @@
 [package]
-name = "viewmd"
-version = "0.10.1"
+name = "quickglass"
+version = "0.11.0"
 edition = "2024"
-description = "ViewMD - Lightweight markdown viewer for Windows"
+description = "QuickGlass - Lightweight markdown viewer for Windows"
 license = "GPL-3.0-only"
 
 [features]

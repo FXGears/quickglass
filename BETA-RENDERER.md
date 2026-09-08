@@ -3,12 +3,12 @@
 An optional Direct2D/DirectWrite renderer that replaces WebView2. It is **not in stock
 releases**, is **off by default**, and adds **nothing** to a normal build.
 
-If you downloaded `viewmd.exe` from Releases, this page does not apply to you. Nothing
+If you downloaded `quickglass.exe` from Releases, this page does not apply to you. Nothing
 here changes what you have.
 
 ## Why
 
-WebView2 is a browser. ViewMD uses it to draw a page of text that never changes, never
+WebView2 is a browser. QuickGlass uses it to draw a page of text that never changes, never
 runs script, and never goes to the network. That is a lot of machinery for the job.
 
 Measured on one machine, time from process start to a window with painted content:
@@ -19,7 +19,7 @@ Measured on one machine, time from process start to a window with painted conten
 | Native | ~233 ms | 181 ms initialising Direct2D |
 
 Parsing the markdown takes 0.5 ms and laying it out takes 7 ms. Under 3% of startup is
-ViewMD's own work; the rest is renderer initialisation. That is the entire argument for
+QuickGlass's own work; the rest is renderer initialisation. That is the entire argument for
 the native path, and it is why the WebView2 number did not improve by tuning our code.
 
 Both figures come from the in-process trace, not from watching for a window handle to
@@ -38,8 +38,8 @@ cargo build --release --features beta_render    # native available
 Then select it per launch:
 
 ```powershell
-.\target\release\viewmd.exe file.md                  # WebView2 (default, both builds)
-.\target\release\viewmd.exe file.md --beta_render    # native (feature build only)
+.\target\release\quickglass.exe file.md                  # WebView2 (default, both builds)
+.\target\release\quickglass.exe file.md --beta_render    # native (feature build only)
 ```
 
 WebView2 stays the default even in a feature build. A stock build accepts
@@ -118,9 +118,9 @@ Capturing the foreground window from the screen works for both.
 ## Measuring
 
 ```powershell
-$env:VIEWMD_TRACE = '1'
-.\target\release\viewmd.exe .\resources\markdown-test.md --beta_render
-Get-Content "$env:TEMP\viewmd-startup.log"
+$env:QUICKGLASS_TRACE = '1'
+.\target\release\quickglass.exe .\resources\markdown-test.md --beta_render
+Get-Content "$env:TEMP\quickglass-startup.log"
 ```
 
 One line per launch, with cumulative milliseconds per phase. Both renderers share the

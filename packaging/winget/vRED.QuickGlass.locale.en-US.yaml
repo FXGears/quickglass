@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: vRED.QuickGlass
+PackageVersion: 0.11.0
+PackageLocale: en-US
+Publisher: vRED
+PublisherUrl: https://volatility.red
+PackageName: QuickGlass
+PackageUrl: https://github.com/FXGears/quickglass
+License: GPL-3.0-only
+LicenseUrl: https://github.com/FXGears/quickglass/blob/master/LICENSE
+Moniker: quickglass
+ShortDescription: The fastest way to read a markdown file on Windows. Under 1 MB. No bloat.
+Description: |-
+  QuickGlass does one thing: renders a .md file in a window. No editor, no tabs, no sidebar, no plugins, no settings, no config files, no internet connection, no telemetry. Double-click a markdown file. Read it. Close the window.
+Tags:
+- markdown
+- viewer
+- lightweight
+- rust
+- dark-mode
+ReleaseNotesUrl: https://github.com/FXGears/quickglass/releases/tag/v0.11.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

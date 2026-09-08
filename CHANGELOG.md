@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.11.0
+
+**Renamed to QuickGlass.** The project was previously called ViewMD, a name shared with
+several other markdown viewers (including one on the Mac App Store). QuickGlass is the
+same tool under a distinct name.
+
+What changed for you:
+
+- The binary is now `quickglass.exe`.
+- The window title and usage text read QuickGlass.
+- The per-process WebView2 profile folder is now `%TEMP%\quickglass-<pid>` instead of
+  `viewmd-<pid>`.
+- The startup trace variable is `QUICKGLASS_TRACE` and its log is
+  `%TEMP%\quickglass-startup.log`.
+
+If you had ViewMD set as your `.md` handler, re-point the association at
+`quickglass.exe`. No behaviour changed; this is a rename plus the 0.10.1 icon.
+
 ## v0.10.1
 
 New application and file-association icon. The tilted double-pane now glows neon
