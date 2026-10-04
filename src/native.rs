@@ -21,7 +21,7 @@ use pulldown_cmark::{Event as MdEvent, HeadingLevel, Options, Parser, Tag, TagEn
 use tao::event::{ElementState, Event, MouseButton, MouseScrollDelta, StartCause, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoop};
 use tao::keyboard::{KeyCode, ModifiersState};
-use tao::platform::windows::WindowExtWindows;
+use tao::platform::windows::{IconExtWindows, WindowExtWindows};
 use tao::window::{CursorIcon, Icon, WindowBuilder};
 use windows::Win32::Foundation::{E_OUTOFMEMORY, GlobalFree, HANDLE, HWND};
 use windows::Win32::Graphics::Direct2D::Common::{
@@ -111,6 +111,10 @@ const BAR_H: f32 = 30.0;
 const BAR_MARGIN: f32 = 8.0;
 const BAR_PAD: f32 = 10.0;
 const BAR_ARROW_W: f32 = 22.0;
+
+/// Resource ID of the application icon. `build.rs` embeds `resources/icon.ico`
+/// via `winresource::set_icon`, which always uses ID 1.
+const ICON_RESOURCE: u16 = 1;
 
 /// Indices into the renderer's brush table.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -719,11 +723,26 @@ fn open_in_browser(url: &str) {
 
 /// Opens a markdown file in a new QuickGlass process.
 ///
+/// Launches this same executable through `ShellExecuteW`, which is already
+/// linked for browser links, rather than `std::process::Command`, whose
+/// environment and stdio plumbing would add ~30 KB we never use. The binary
+/// is a GUI-subsystem app, so no console window appears.
+///
 /// Args:
 ///     path: The file to open.
 fn open_document(path: &Path) {
-    if let Ok(exe) = std::env::current_exe() {
-        let _ = std::process::Command::new(exe).arg(path).spawn();
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    // Quoted so paths with spaces arrive as one argument; `"` cannot occur in
+    // a Windows file name, so the quoting cannot be broken by the path itself.
+    let mut params = std::ffi::OsString::from("\"");
+    params.push(path.as_os_str());
+    params.push("\"");
+    let exe = HSTRING::from(exe.as_os_str());
+    let params = HSTRING::from(params.as_os_str());
+    unsafe {
+        ShellExecuteW(None, w!("open"), &exe, &params, PCWSTR::null(), SW_SHOWNORMAL);
     }
 }
 
@@ -1285,6 +1304,10 @@ impl Renderer {
     }
 
     fn max_scroll(&self) -> f32 {
+        // Callers bound scroll with `.max(0.0).min(self.max_scroll())` rather than
+        // `f32::clamp`: clamp's `min <= max` assertion formats floats in its panic
+        // message, which links float formatting into the binary. The lower bound
+        // is 0 and this is never negative, so the results are identical.
         (self.content_height - self.view.1).max(0.0)
     }
 
@@ -1295,7 +1318,7 @@ impl Renderer {
             return None;
         }
         let track = self.view.1;
-        let visible = (track / self.content_height).clamp(0.0, 1.0);
+        let visible = (track / self.content_height).max(0.0).min(1.0);
         let height = (track * visible).max(THUMB_MIN).min(track);
         let top = (self.scroll / max) * (track - height);
         Some(Thumb { top, height })
@@ -1360,25 +1383,25 @@ impl Renderer {
         }
         let target = ((y - grab) / span) * self.max_scroll();
         let before = self.scroll;
-        self.scroll = target.clamp(0.0, self.max_scroll());
+        self.scroll = target.max(0.0).min(self.max_scroll());
         self.scroll != before
     }
 
     fn clamp_scroll(&mut self) {
-        self.scroll = self.scroll.clamp(0.0, self.max_scroll());
+        self.scroll = self.scroll.max(0.0).min(self.max_scroll());
     }
 
     /// Scrolls by `delta` DIPs and reports whether the offset actually moved.
     fn scroll_by(&mut self, delta: f32) -> bool {
         let before = self.scroll;
-        self.scroll = (self.scroll + delta).clamp(0.0, self.max_scroll());
+        self.scroll = (self.scroll + delta).max(0.0).min(self.max_scroll());
         self.scroll != before
     }
 
     /// Scrolls to an absolute document offset, reporting whether it moved.
     fn scroll_to(&mut self, offset: f32) -> bool {
         let before = self.scroll;
-        self.scroll = offset.clamp(0.0, self.max_scroll());
+        self.scroll = offset.max(0.0).min(self.max_scroll());
         self.scroll != before
     }
 
@@ -2029,7 +2052,6 @@ fn stop_autoscroll(
 ///     source: Markdown text to display.
 ///     title: Window title.
 ///     path: File the markdown came from, used to resolve relative links.
-///     icon: Window and taskbar icon.
 ///     trace: Startup trace shared with `main`, so both renderers report
 ///         timings on the same clock.
 ///
@@ -2039,14 +2061,12 @@ pub fn run(
     source: &str,
     title: &str,
     path: Option<&Path>,
-    icon: Icon,
     trace: std::rc::Rc<std::cell::RefCell<crate::StartupTrace>>,
 ) -> ! {
     let base_dir: Option<PathBuf> = path.and_then(Path::parent).map(Path::to_path_buf);
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title(title)
-        .with_window_icon(Some(icon))
         .with_background_color((13, 17, 23, 255))
         .with_visible(false)
         .with_inner_size(tao::dpi::LogicalSize::new(920.0, 700.0))
@@ -2056,6 +2076,17 @@ pub fn run(
     let physical = window.inner_size();
     let scale = window.scale_factor();
     let logical = physical.to_logical::<f32>(scale);
+
+    // Icons come from the `.ico` already embedded in the exe, requested at the
+    // exact pixel sizes this display wants (16 DIPs for the title bar, 32 for
+    // the taskbar and Alt-Tab), so Windows picks the sharpest image and no
+    // image decoder ships in the binary.
+    let icon_size = |dips: f64| {
+        let px = (dips * scale).round() as u32;
+        Some(tao::dpi::PhysicalSize::new(px, px))
+    };
+    window.set_window_icon(Icon::from_resource(ICON_RESOURCE, icon_size(16.0)).ok());
+    window.set_taskbar_icon(Icon::from_resource(ICON_RESOURCE, icon_size(32.0)).ok());
 
     trace.borrow_mut().mark("window_created");
 

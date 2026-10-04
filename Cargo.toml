@@ -5,10 +5,15 @@ edition = "2024"
 description = "QuickGlass - Lightweight markdown viewer for Windows"
 license = "GPL-3.0-only"
 
+[features]
+default = []
+# Dev-only startup timing log (%TEMP%\quickglass-startup.log). Off by default so
+# release builds contain no timing code: `cargo build --release --features trace`.
+trace = []
+
 [dependencies]
 tao = "0.33"
 pulldown-cmark = { version = "0.12", default-features = false }
-png = "0.17"
 
 # Native Direct2D/DirectWrite renderer. Both are OS components, so this adds no
 # runtime payload. Version matches what tao already resolves to.

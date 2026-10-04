@@ -118,13 +118,14 @@ Capturing the foreground window from the screen works for both.
 ## Measuring
 
 ```powershell
-$env:QUICKGLASS_TRACE = '1'
-.\target\release\quickglass.exe .\resources\markdown-test.md --beta_render
+cargo build --release --features trace
+.\target\release\quickglass.exe .\resources\markdown-test.md
 Get-Content "$env:TEMP\quickglass-startup.log"
 ```
 
-One line per launch, with cumulative milliseconds per phase. Both renderers share the
-same clock, so their traces compare directly. The variable is inert when unset.
+One line per launch, each phase as whole microseconds since process start
+(`window_shown_us=64123`). Tracing is compiled in only with `--features trace`; a
+normal build contains no timing code.
 
 Do not time startup by polling for a window handle from outside the process. The handle
 appears well before content is painted and produced figures roughly fifteen times too
