@@ -5,28 +5,17 @@ edition = "2024"
 description = "QuickGlass - Lightweight markdown viewer for Windows"
 license = "GPL-3.0-only"
 
-[features]
-# Off by default: a stock release contains no native renderer at all — the module is
-# not compiled and the Direct2D/DirectWrite bindings are not linked. Build with
-# `--features beta_render` to include it, then select it at runtime with
-# `--beta_render`.
-default = []
-beta_render = ["dep:windows", "dep:windows-numerics"]
-
 [dependencies]
-wry = "0.51"
 tao = "0.33"
-pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+pulldown-cmark = { version = "0.12", default-features = false }
 png = "0.17"
 
-# Native renderer (`--beta_render`), gated behind the `beta_render` feature. Direct2D
-# and DirectWrite are OS components, so this adds no runtime payload. Version matches
-# what tao/wry already resolve to, so no additional crate is pulled into the build.
-windows-numerics = { version = "0.2.0", optional = true }
+# Native Direct2D/DirectWrite renderer. Both are OS components, so this adds no
+# runtime payload. Version matches what tao already resolves to.
+windows-numerics = "0.2.0"
 
 [dependencies.windows]
 version = "0.61.3"
-optional = true
 features = [
     "Win32_Foundation",
     "Win32_Graphics_Direct2D",
