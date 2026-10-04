@@ -99,5 +99,11 @@ fn main() {
 
     trace.borrow_mut().mark("file_read");
 
-    native::run(&md_content, &title, load_icon(), trace);
+    native::run(
+        &md_content,
+        &title,
+        file_arg.as_deref().map(std::path::Path::new),
+        load_icon(),
+        trace,
+    );
 }

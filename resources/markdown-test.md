@@ -13,6 +13,37 @@ quickglass.exe resources\markdown-test.md --beta_render
 
 ---
 
+## Contents
+
+Each entry is an ordinary link to a heading anchor. Clicking one should scroll that
+section's heading to the top of the window.
+
+1. [Headings](#1-headings)
+2. [Paragraphs and line breaks](#2-paragraphs-and-line-breaks)
+3. [Emphasis](#3-emphasis)
+4. [Inline code](#4-inline-code)
+5. [Links](#5-links)
+6. [Images](#6-images)
+7. [Blockquotes](#7-blockquotes)
+8. [Unordered lists](#8-unordered-lists)
+9. [Ordered lists](#9-ordered-lists)
+10. [Task lists](#10-task-lists)
+11. [Code blocks](#11-code-blocks)
+12. [Tables](#12-tables)
+13. [Footnotes](#13-footnotes)
+14. [Definition lists](#14-definition-lists)
+15. [Math](#15-math)
+16. [HTML](#16-html)
+17. [Escapes and entities](#17-escapes-and-entities)
+18. [Smart punctuation](#18-smart-punctuation)
+19. [Superscript and subscript](#19-superscript-and-subscript)
+20. [Unicode and text shaping](#20-unicode-and-text-shaping)
+21. [Long-line and wrapping stress](#21-long-line-and-wrapping-stress)
+22. [Structural edge cases](#22-structural-edge-cases)
+23. [Final section](#23-final-section)
+
+---
+
 ## 1. Headings
 
 # H1 via ATX
