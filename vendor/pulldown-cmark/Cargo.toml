@@ -89,8 +89,9 @@ version = "1.0"
 features = ["derive"]
 optional = true
 
-[dependencies.unicase]
-version = "2.6"
+# QuickGlass: unicase replaced by src/casefold.rs; kept only to test equivalence.
+[dev-dependencies.unicase]
+version = "=2.9.0"
 
 [dev-dependencies.bincode]
 version = "1.3.1"

@@ -26,7 +26,7 @@ use std::iter::FusedIterator;
 use std::num::NonZeroUsize;
 use std::ops::{Index, Range};
 
-use unicase::UniCase;
+use crate::casefold::UniCase;
 
 use crate::firstpass::run_first_pass;
 use crate::linklabel::{scan_link_label_rest, FootnoteLabel, LinkLabel, ReferenceLabel};

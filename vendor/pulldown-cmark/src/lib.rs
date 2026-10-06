@@ -87,6 +87,8 @@ pub mod utils;
 
 mod entities;
 mod firstpass;
+mod casefold;
+mod casefold_table;
 mod linklabel;
 mod parse;
 mod puncttable;

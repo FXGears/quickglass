@@ -1,0 +1,9 @@
+[package]
+name = "casefold-gen"
+version = "0.0.0"
+edition = "2021"
+[dependencies]
+unicase = "=2.9.0"
+
+# Standalone tool, not part of any workspace.
+[workspace]

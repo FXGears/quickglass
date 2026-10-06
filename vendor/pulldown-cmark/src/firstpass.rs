@@ -17,7 +17,7 @@ use crate::{
 };
 use crate::{scanners::*, MetadataBlockKind};
 
-use unicase::UniCase;
+use crate::casefold::UniCase;
 
 /// Runs the first pass, which resolves the block structure of the document,
 /// and returns the resulting tree.

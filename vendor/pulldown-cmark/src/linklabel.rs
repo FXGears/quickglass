@@ -20,7 +20,7 @@
 
 //! Link label parsing and matching.
 
-use unicase::UniCase;
+use crate::casefold::UniCase;
 
 use crate::scanners::{is_ascii_punctuation, is_ascii_whitespace, scan_eol};
 use crate::strings::CowStr;
