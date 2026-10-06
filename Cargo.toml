@@ -44,3 +44,9 @@ lto = true
 codegen-units = 1
 strip = true
 panic = "abort"
+
+# Vendored pulldown-cmark 0.12.2 with one change: the HTML entity table is packed
+# (concatenated strings + u16 offsets) instead of 2,125 fat-pointer pairs, saving
+# ~54 KB. Same data and lookup results; see vendor/pulldown-cmark/mk_entities_packed.ps1.
+[patch.crates-io]
+pulldown-cmark = { path = "vendor/pulldown-cmark" }

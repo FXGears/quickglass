@@ -14,8 +14,10 @@ RES = Path(__file__).resolve().parent / "resources"
 
 # Standalone PNGs kept in the repo.
 PNG_SIZES = {"icon-512.png": 512, "icon-64.png": 64}
-# Sizes packed into the .ico; Explorer selects the best per view.
-ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
+# Sizes packed into the .ico; Explorer selects the best per view. 256 is omitted
+# on purpose: it alone was ~40 KB of a ~63 KB file, and Windows upscales 128 for
+# the largest views instead.
+ICO_SIZES = [16, 24, 32, 48, 64, 128]
 
 # Supersample factor: render big, blur, then shrink for anti-aliased edges.
 SS = 4
