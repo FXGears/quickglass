@@ -13,16 +13,8 @@
 cargo build --release
 ```
 
-Requires Rust (stable) and Visual Studio Build Tools.
-
-The optional Direct2D renderer is behind a feature flag and off by default:
-
-```
-cargo build --release --features beta_render
-```
-
-Read [BETA-RENDERER.md](BETA-RENDERER.md) before touching it. Rule 2 above still
-applies — it costs 20KB and is opt-in at both build and run time for that reason.
+Requires Rust (stable) and Visual Studio Build Tools. Release binaries come from
+`build-release.ps1` (nightly, size-optimized std); measure rule 2 against that build.
 
 ## Pull Requests
 

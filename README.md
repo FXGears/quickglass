@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/FXGears/quickglass?style=flat-square)](https://github.com/FXGears/quickglass/releases)
 [![License](https://img.shields.io/github/license/FXGears/quickglass?style=flat-square)](LICENSE)
-[![Binary Size](https://img.shields.io/badge/binary-838_KB-blue?style=flat-square)]()
+[![Binary Size](https://img.shields.io/badge/binary-222_KB-blue?style=flat-square)]()
 [![No Electron](https://img.shields.io/badge/electron-none-green?style=flat-square)]()
 
 **Under 1 MB. Under 100ms. Opens a markdown file. Closes when you're done.**
@@ -30,7 +30,7 @@ Done.
 | | **QuickGlass** | *Typora* | *Marktext* | *Tinta* | *Obsidian* |
 |---|---|---|---|---|---|
 | Opens a markdown file | **✓** | *✓* | *✓* | *✓* | *✓* |
-| Binary size | **838 KB** | *90 MB* | *180 MB* | *1.8 MB* | *300+ MB* |
+| Binary size | **222 KB** | *90 MB* | *180 MB* | *1.8 MB* | *300+ MB* |
 | Startup time | **<100ms** | *~2s* | *~3s* | *~100ms* | *~4s* |
 | Electron inside | **No** | *No* | *Yes* | *No* | *Yes* |
 | Wants to manage your files | **No** | *No* | *No* | *No* | *Yes* |
@@ -59,12 +59,12 @@ If you want those things, use [Tinta](https://tinta.cc), [Markpad](https://githu
 
 | | |
 |---|---|
-| Binary | 838 KB |
-| Memory | ~30 MB |
+| Binary | 222 KB |
+| Memory | ~30 MB working set, one process |
 | Cold start | <100ms |
-| Runtime deps | None (WebView2 ships with Windows 10/11) |
+| Runtime deps | None (Direct2D and DirectWrite are part of Windows) |
 | Language | Rust |
-| Renderer | WebView2 + GitHub-dark CSS |
+| Renderer | Native Direct2D + DirectWrite |
 | License | GPL-3.0 |
 
 ## Building
@@ -73,7 +73,12 @@ If you want those things, use [Tinta](https://tinta.cc), [Markpad](https://githu
 cargo build --release
 ```
 
-Requires Rust (stable) and Visual Studio Build Tools. Output: `target/release/quickglass.exe`
+Requires Rust (stable) and Visual Studio Build Tools. Output: `target/release/quickglass.exe` (~351 KB).
 
-There is an optional Direct2D renderer, off by default and not in releases. See
-[BETA-RENDERER.md](BETA-RENDERER.md) if you want to build with it.
+Release binaries are built with a size-optimized standard library:
+
+```
+powershell -ExecutionPolicy Bypass -File build-release.ps1
+```
+
+Requires the nightly toolchain with `rust-src`. Output: `target/x86_64-pc-windows-msvc/release/quickglass.exe` (222 KB).
