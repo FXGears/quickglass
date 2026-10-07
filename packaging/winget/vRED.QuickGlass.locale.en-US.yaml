@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: vRED.QuickGlass
-PackageVersion: 0.11.0
+PackageVersion: 1.0.0
 PackageLocale: en-US
 Publisher: vRED
 PublisherUrl: https://volatility.red
@@ -19,6 +19,6 @@ Tags:
 - lightweight
 - rust
 - dark-mode
-ReleaseNotesUrl: https://github.com/FXGears/quickglass/releases/tag/v0.11.0
+ReleaseNotesUrl: https://github.com/FXGears/quickglass/releases/tag/v1.0.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

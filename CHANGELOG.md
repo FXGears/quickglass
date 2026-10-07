@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.0.0
+
+**New engine.** WebView2 is gone. QuickGlass now draws the page itself with Direct2D and
+DirectWrite, which are part of Windows, in a plain Win32 window. Same viewer, same
+dark theme, a fraction of the weight.
+
+| | 0.11.0 | 1.0.0 |
+|---|---|---|
+| Binary | 858,624 bytes | 227,328 bytes |
+| Window painted | ~478 ms | ~55 ms |
+| Processes | 7 | 1 |
+| Private memory | 211.5 MB | 15.6 MB |
+| Profile on disk | `%TEMP%\quickglass-<pid>` | none |
+
+New:
+
+- Ctrl+F search bar with match count and next/previous.
+- Drag to select text, including across blocks and table cells. Ctrl+C copies, Ctrl+A
+  selects all.
+- Links: `#anchors` jump to headings, web links open your browser, relative `.md` links
+  open in a new QuickGlass window.
+- Middle-click autoscroll, either click-to-toggle or hold-and-drag.
+
+What changed for you:
+
+- Nothing to install or configure. WebView2 is no longer used.
+- No profile folder is created under `%TEMP%` any more. Any `quickglass-<pid>` folders
+  left there by 0.11.0 are safe to delete.
+- The `QUICKGLASS_TRACE` startup log is now a build-time option (`--features trace`)
+  and is absent from release binaries.
+
 ## v0.11.0
 
 **Renamed to QuickGlass.** The project was previously called ViewMD, a name shared with

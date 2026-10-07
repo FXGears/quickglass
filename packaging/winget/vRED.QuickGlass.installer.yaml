@@ -1,15 +1,15 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: vRED.QuickGlass
-PackageVersion: 0.11.0
+PackageVersion: 1.0.0
 Platform:
 - Windows.Desktop
 MinimumOSVersion: 10.0.17763.0
 InstallerType: portable
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/FXGears/quickglass/releases/download/v0.11.0/quickglass.exe
-  InstallerSha256: 35F28355B7A9B8EDB6AEBD40B3D1F024C55FF8EEF563EB4F74E28C284567FBE1
+  InstallerUrl: https://github.com/FXGears/quickglass/releases/download/v1.0.0/quickglass.exe
+  InstallerSha256: C855DE8CFEBEB4CCDB7A183EAC64F58741686BE297496336BE2A53552B432D85
   PortableCommandAlias: quickglass
   FileExtensions:
   - md
