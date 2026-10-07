@@ -18,11 +18,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use pulldown_cmark::{Event as MdEvent, HeadingLevel, Options, Parser, Tag, TagEnd};
-use tao::event::{ElementState, Event, MouseButton, MouseScrollDelta, StartCause, WindowEvent};
-use tao::event_loop::{ControlFlow, EventLoop};
-use tao::keyboard::{KeyCode, ModifiersState};
-use tao::platform::windows::{IconExtWindows, WindowExtWindows};
-use tao::window::{CursorIcon, Icon, WindowBuilder};
+use crate::win::{Button, Cursor, Ev, Window};
 use windows::Win32::Foundation::{E_OUTOFMEMORY, GlobalFree, HANDLE, HWND};
 use windows::Win32::Graphics::Direct2D::Common::{
     D2D1_ALPHA_MODE_IGNORE, D2D1_COLOR_F, D2D1_PIXEL_FORMAT, D2D_RECT_F, D2D_SIZE_U,
@@ -111,10 +107,6 @@ const BAR_H: f32 = 30.0;
 const BAR_MARGIN: f32 = 8.0;
 const BAR_PAD: f32 = 10.0;
 const BAR_ARROW_W: f32 = 22.0;
-
-/// Resource ID of the application icon. `build.rs` embeds `resources/icon.ico`
-/// via `winresource::set_icon`, which always uses ID 1.
-const ICON_RESOURCE: u16 = 1;
 
 /// Indices into the renderer's brush table.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -885,21 +877,6 @@ impl Autoscroll {
         let offset = cursor_y - self.anchor_y;
         let past = (offset.abs() - AUTOSCROLL_DEAD_ZONE).max(0.0);
         offset.signum() * past * AUTOSCROLL_GAIN
-    }
-
-    /// Cursor shape showing the current scroll direction.
-    ///
-    /// Args:
-    ///     cursor_y: Current cursor y in DIPs.
-    fn cursor_icon(&self, cursor_y: f32) -> CursorIcon {
-        let velocity = self.velocity(cursor_y);
-        if velocity > 0.0 {
-            CursorIcon::SResize
-        } else if velocity < 0.0 {
-            CursorIcon::NResize
-        } else {
-            CursorIcon::NsResize
-        }
     }
 }
 
@@ -2019,28 +1996,39 @@ fn make_format(
     }
 }
 
-/// Ends autoscroll, if active, and restores the normal cursor and event wait.
+/// Ends autoscroll, if active, and restores the normal cursor.
 ///
 /// Args:
 ///     autoscroll: Current autoscroll state; cleared on return.
-///     window: Window whose cursor is restored.
-///     control_flow: Event loop control; set back to plain waiting.
+///     window: Window whose timer is stopped and cursor restored.
 ///
 /// Returns:
 ///     `true` if autoscroll was active, so the caller can swallow the input
 ///     that ended it.
-fn stop_autoscroll(
-    autoscroll: &mut Option<Autoscroll>,
-    window: &tao::window::Window,
-    control_flow: &mut ControlFlow,
-) -> bool {
+fn stop_autoscroll(autoscroll: &mut Option<Autoscroll>, window: &Window) -> bool {
     if autoscroll.take().is_none() {
         return false;
     }
-    window.set_cursor_icon(CursorIcon::Default);
-    *control_flow = ControlFlow::Wait;
+    window.stop_timer();
+    window.set_cursor(Cursor::Arrow);
     true
 }
+
+// Win32 virtual-key codes the viewer responds to.
+const VK_BACK: u16 = 0x08;
+const VK_RETURN: u16 = 0x0D;
+const VK_ESCAPE: u16 = 0x1B;
+const VK_SPACE: u16 = 0x20;
+const VK_PRIOR: u16 = 0x21;
+const VK_NEXT: u16 = 0x22;
+const VK_END: u16 = 0x23;
+const VK_HOME: u16 = 0x24;
+const VK_UP: u16 = 0x26;
+const VK_DOWN: u16 = 0x28;
+const VK_A: u16 = 0x41;
+const VK_C: u16 = 0x43;
+const VK_F: u16 = 0x46;
+const VK_F3: u16 = 0x72;
 
 // ---------------------------------------------------------------------------
 // Entry point
@@ -2064,33 +2052,15 @@ pub fn run(
     trace: std::rc::Rc<std::cell::RefCell<crate::StartupTrace>>,
 ) -> ! {
     let base_dir: Option<PathBuf> = path.and_then(Path::parent).map(Path::to_path_buf);
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title(title)
-        .with_background_color((13, 17, 23, 255))
-        .with_visible(false)
-        .with_inner_size(tao::dpi::LogicalSize::new(920.0, 700.0))
-        .build(&event_loop)
-        .expect("Failed to create window");
+    // Created hidden; icons, DPI awareness and title-bar theme are set inside.
+    let window = Window::create(title, (920.0, 700.0)).expect("Failed to create window");
 
-    let physical = window.inner_size();
-    let scale = window.scale_factor();
-    let logical = physical.to_logical::<f32>(scale);
-
-    // Icons come from the `.ico` already embedded in the exe, requested at the
-    // exact pixel sizes this display wants (16 DIPs for the title bar, 32 for
-    // the taskbar and Alt-Tab), so Windows picks the sharpest image and no
-    // image decoder ships in the binary.
-    let icon_size = |dips: f64| {
-        let px = (dips * scale).round() as u32;
-        Some(tao::dpi::PhysicalSize::new(px, px))
-    };
-    window.set_window_icon(Icon::from_resource(ICON_RESOURCE, icon_size(16.0)).ok());
-    window.set_taskbar_icon(Icon::from_resource(ICON_RESOURCE, icon_size(32.0)).ok());
+    let physical = window.client_size();
+    let scale = window.scale();
 
     trace.borrow_mut().mark("window_created");
 
-    let mut renderer = Renderer::new(window.hwnd(), (physical.width, physical.height))
+    let mut renderer = Renderer::new(window.hwnd().0 as isize, physical)
         .expect("Failed to initialise Direct2D");
     trace.borrow_mut().mark("d2d_ready");
 
@@ -2100,13 +2070,13 @@ pub fn run(
     trace.borrow_mut().mark("markdown_parsed");
 
     renderer
-        .relayout((logical.width, logical.height))
+        .relayout((physical.0 as f32 / scale, physical.1 as f32 / scale))
         .expect("Failed to lay out document");
     trace.borrow_mut().mark("laid_out");
 
     // Paint before the window is shown so it never appears empty.
     let _ = renderer.paint();
-    window.set_visible(true);
+    window.show();
     {
         let mut trace = trace.borrow_mut();
         trace.mark("window_shown");
@@ -2114,130 +2084,115 @@ pub fn run(
     }
 
     let mut autoscroll: Option<Autoscroll> = None;
-    let mut modifiers = ModifiersState::empty();
     // Link under the left button when it went down; it opens only if the
     // button is released over the same link.
     let mut pressed_link: Option<String> = None;
     // Cursor shape currently shown for hover (arrow, hand over links, I-beam
     // over text), so it is only set on change.
-    let mut hover_cursor = CursorIcon::Default;
+    let mut hover_cursor = Cursor::Arrow;
     // Where the left button went down, to tell a click from a drag-select.
     let mut press_point = (0.0_f32, 0.0_f32);
+    // Set when a key press was swallowed (it only cancelled autoscroll), so the
+    // character Windows sends after it is swallowed too.
+    let mut swallow_char = false;
 
-    event_loop.run(move |event, _, control_flow| {
-        // While autoscrolling, wake on a timer to step the scroll; otherwise
-        // sleep until input arrives.
-        *control_flow = match &autoscroll {
-            Some(active) => ControlFlow::WaitUntil(active.last_step + AUTOSCROLL_FRAME),
-            None => ControlFlow::Wait,
-        };
-
-        match event {
-            Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
-                if let Some(active) = autoscroll.as_mut() {
-                    let now = Instant::now();
-                    let elapsed = now.duration_since(active.last_step).as_secs_f32();
-                    active.last_step = now;
-                    if renderer.scroll_by(active.velocity(renderer.cursor.1) * elapsed) {
-                        let _ = renderer.paint();
-                    }
-                    *control_flow = ControlFlow::WaitUntil(now + AUTOSCROLL_FRAME);
-                }
-            }
-
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                // Exit directly; see the note in main.rs on tao's exit handling.
-                std::process::exit(0);
-            }
-
-            Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
-                if renderer.resize((size.width, size.height)).is_ok() {
-                    let logical = size.to_logical::<f32>(window.scale_factor());
-                    let _ = renderer.relayout((logical.width, logical.height));
+    window.run(move |event| match event {
+        Ev::Timer => {
+            if let Some(active) = autoscroll.as_mut() {
+                let now = Instant::now();
+                let elapsed = now.duration_since(active.last_step).as_secs_f32();
+                active.last_step = now;
+                if renderer.scroll_by(active.velocity(renderer.cursor.1) * elapsed) {
                     let _ = renderer.paint();
                 }
             }
+        }
 
-            Event::WindowEvent { event: WindowEvent::CursorMoved { position, .. }, .. } => {
-                let p = position.to_logical::<f32>(window.scale_factor());
-                renderer.cursor = (p.x, p.y);
-                if let Some(active) = &autoscroll {
-                    window.set_cursor_icon(active.cursor_icon(p.y));
+        Ev::Close => std::process::exit(0),
+
+        Ev::Resized(width, height) => {
+            if renderer.resize((width, height)).is_ok() {
+                let scale = window.scale();
+                let _ = renderer.relayout((width as f32 / scale, height as f32 / scale));
+                let _ = renderer.paint();
+            }
+        }
+
+        Ev::Paint => {
+            let _ = renderer.paint();
+        }
+
+        Ev::Moved(x, y) => {
+            renderer.cursor = (x, y);
+            let moved = renderer.drag_to(y);
+            let hover_changed = renderer.update_hover();
+            if moved || hover_changed {
+                let _ = renderer.paint();
+            }
+            if renderer.selecting {
+                let (dx, dy) = (x - press_point.0, y - press_point.1);
+                if (dx * dx + dy * dy).sqrt() > DRAG_THRESHOLD {
+                    // Moving off the press point turns a link click into a selection.
+                    pressed_link = None;
                 }
-                let moved = renderer.drag_to(p.y);
-                let hover_changed = renderer.update_hover();
-                if moved || hover_changed {
-                    let _ = renderer.paint();
-                }
-                if renderer.selecting {
-                    let (dx, dy) = (p.x - press_point.0, p.y - press_point.1);
-                    if (dx * dx + dy * dy).sqrt() > DRAG_THRESHOLD {
-                        // Moving off the press point turns a link click into a selection.
-                        pressed_link = None;
-                    }
-                    if pressed_link.is_none() {
-                        // Dragging past the top or bottom edge scrolls the document.
-                        let edge = if p.y < 0.0 {
-                            p.y
-                        } else if p.y > renderer.view.1 {
-                            p.y - renderer.view.1
-                        } else {
-                            0.0
-                        };
-                        if edge != 0.0 {
-                            renderer.scroll_by(edge);
-                        }
-                        if let Some(caret) = renderer.caret_at(renderer.cursor) {
-                            if let Some(selection) = renderer.selection.as_mut() {
-                                selection.focus = caret;
-                            }
-                        }
-                        let _ = renderer.paint();
-                    }
-                }
-                if autoscroll.is_none() && renderer.drag_grab.is_none() {
-                    let cursor = renderer.cursor;
-                    let icon = if renderer.selecting && pressed_link.is_none() {
-                        CursorIcon::Text
-                    } else if renderer.link_at(cursor).is_some() {
-                        CursorIcon::Hand
-                    } else if !renderer.in_gutter(cursor.0)
-                        && renderer.bar_hit(cursor).is_none()
-                        && renderer.hit_text(cursor).is_some()
-                    {
-                        CursorIcon::Text
+                if pressed_link.is_none() {
+                    // Dragging past the top or bottom edge scrolls the document.
+                    let edge = if y < 0.0 {
+                        y
+                    } else if y > renderer.view.1 {
+                        y - renderer.view.1
                     } else {
-                        CursorIcon::Default
+                        0.0
                     };
-                    if icon != hover_cursor {
-                        hover_cursor = icon;
-                        window.set_cursor_icon(icon);
+                    if edge != 0.0 {
+                        renderer.scroll_by(edge);
                     }
-                }
-            }
-
-            Event::WindowEvent { event: WindowEvent::ModifiersChanged(state), .. } => {
-                modifiers = state;
-            }
-
-            Event::WindowEvent { event: WindowEvent::CursorLeft { .. }, .. } => {
-                // During autoscroll, keep the last in-window position so scrolling
-                // continues at the speed it had at the edge, as in browsers.
-                if autoscroll.is_some() || renderer.selecting {
-                    return;
-                }
-                renderer.cursor = (-1.0, -1.0);
-                if renderer.update_hover() {
+                    if let Some(caret) = renderer.caret_at(renderer.cursor) {
+                        if let Some(selection) = renderer.selection.as_mut() {
+                            selection.focus = caret;
+                        }
+                    }
                     let _ = renderer.paint();
                 }
             }
+            if autoscroll.is_none() && renderer.drag_grab.is_none() {
+                let cursor = renderer.cursor;
+                let icon = if renderer.selecting && pressed_link.is_none() {
+                    Cursor::IBeam
+                } else if renderer.link_at(cursor).is_some() {
+                    Cursor::Hand
+                } else if !renderer.in_gutter(cursor.0)
+                    && renderer.bar_hit(cursor).is_none()
+                    && renderer.hit_text(cursor).is_some()
+                {
+                    Cursor::IBeam
+                } else {
+                    Cursor::Arrow
+                };
+                if icon != hover_cursor {
+                    hover_cursor = icon;
+                    window.set_cursor(icon);
+                }
+            }
+        }
 
-            Event::WindowEvent {
-                event: WindowEvent::MouseInput { state, button: MouseButton::Left, .. },
-                ..
-            } => match state {
-                ElementState::Pressed => {
-                    if stop_autoscroll(&mut autoscroll, &window, control_flow) {
+        Ev::Left => {
+            // During autoscroll or a drag, keep the last in-window position so
+            // scrolling continues at the speed it had at the edge.
+            if autoscroll.is_some() || renderer.selecting {
+                return;
+            }
+            renderer.cursor = (-1.0, -1.0);
+            if renderer.update_hover() {
+                let _ = renderer.paint();
+            }
+        }
+
+        Ev::Button { button, down, at } => {
+            renderer.cursor = at;
+            match (button, down) {
+                (Button::Left, true) => {
+                    if stop_autoscroll(&mut autoscroll, &window) {
                         // The click only cancels autoscroll.
                     } else if let Some(hit) = renderer.bar_hit(renderer.cursor) {
                         if hit != BarHit::Inside {
@@ -2263,7 +2218,7 @@ pub fn run(
                         }
                     }
                 }
-                ElementState::Released => {
+                (Button::Left, false) => {
                     renderer.selecting = false;
                     if renderer.drag_grab.take().is_some() {
                         renderer.update_hover();
@@ -2286,138 +2241,115 @@ pub fn run(
                         LinkAction::Ignore => {}
                     }
                 }
-                _ => {}
-            },
-
-            Event::WindowEvent {
-                event: WindowEvent::MouseInput { state, button: MouseButton::Middle, .. },
-                ..
-            } => match state {
-                ElementState::Pressed => {
-                    if !stop_autoscroll(&mut autoscroll, &window, control_flow) {
+                (Button::Middle, true) => {
+                    if !stop_autoscroll(&mut autoscroll, &window) {
                         let active = Autoscroll::new(renderer.cursor.1);
-                        window.set_cursor_icon(active.cursor_icon(renderer.cursor.1));
-                        hover_cursor = CursorIcon::Default;
-                        *control_flow = ControlFlow::WaitUntil(active.last_step + AUTOSCROLL_FRAME);
+                        window.set_cursor(Cursor::SizeNs);
+                        hover_cursor = Cursor::Arrow;
+                        window.start_timer(AUTOSCROLL_FRAME.as_millis() as u32);
                         autoscroll = Some(active);
                     }
                 }
-                ElementState::Released => {
+                (Button::Middle, false) => {
                     // A quick click leaves autoscroll running; a hold ends on release.
                     let held = autoscroll
                         .as_ref()
                         .is_some_and(|active| active.pressed_at.elapsed() >= AUTOSCROLL_HOLD);
                     if held {
-                        stop_autoscroll(&mut autoscroll, &window, control_flow);
+                        stop_autoscroll(&mut autoscroll, &window);
                     }
                 }
-                _ => {}
-            },
-
-            Event::WindowEvent {
-                event: WindowEvent::MouseInput { state: ElementState::Pressed, .. },
-                ..
-            } => {
-                stop_autoscroll(&mut autoscroll, &window, control_flow);
+                (Button::Other, true) => {
+                    stop_autoscroll(&mut autoscroll, &window);
+                }
+                (Button::Other, false) => {}
             }
+        }
 
-            Event::WindowEvent { event: WindowEvent::MouseWheel { delta, .. }, .. } => {
-                stop_autoscroll(&mut autoscroll, &window, control_flow);
-                let dy = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => -y * BODY_LINE * 3.0,
-                    MouseScrollDelta::PixelDelta(p) => -p.y as f32,
-                    _ => 0.0,
-                };
-                if renderer.scroll_by(dy) {
-                    let _ = renderer.paint();
-                }
-            }
-
-            Event::WindowEvent { event: WindowEvent::KeyboardInput { event, .. }, .. } => {
-                if event.state != ElementState::Pressed {
-                    return;
-                }
-                // A key press only cancels autoscroll; Escape here must not close.
-                if stop_autoscroll(&mut autoscroll, &window, control_flow) {
-                    return;
-                }
-
-                if modifiers.control_key() && event.physical_key == KeyCode::KeyF {
-                    renderer.open_search();
-                    let _ = renderer.paint();
-                    return;
-                }
-                if modifiers.control_key() && event.physical_key == KeyCode::KeyC {
-                    let text = renderer.selected_text();
-                    if !text.is_empty() {
-                        let _ = copy_to_clipboard(HWND(window.hwnd() as *mut core::ffi::c_void), &text);
-                    }
-                    return;
-                }
-                if modifiers.control_key() && event.physical_key == KeyCode::KeyA {
-                    renderer.select_all();
-                    let _ = renderer.paint();
-                    return;
-                }
-                if renderer.search.is_some() {
-                    match event.physical_key {
-                        KeyCode::Escape => {
-                            renderer.search = None;
-                            let _ = renderer.paint();
-                            return;
-                        }
-                        KeyCode::Enter | KeyCode::NumpadEnter | KeyCode::F3 => {
-                            renderer.step_search(!modifiers.shift_key());
-                            let _ = renderer.paint();
-                            return;
-                        }
-                        KeyCode::Backspace => {
-                            renderer.edit_query(|query| {
-                                query.pop();
-                            });
-                            let _ = renderer.paint();
-                            return;
-                        }
-                        _ => {}
-                    }
-                    // Printable input goes to the query, including Space, which
-                    // otherwise pages down.
-                    if !modifiers.control_key() && !modifiers.alt_key() {
-                        let typed: String = event
-                            .text
-                            .unwrap_or_default()
-                            .chars()
-                            .filter(|c| !c.is_control())
-                            .collect();
-                        if !typed.is_empty() {
-                            renderer.edit_query(|query| query.push_str(&typed));
-                            let _ = renderer.paint();
-                            return;
-                        }
-                    }
-                }
-
-                let page = renderer.view.1 * 0.9;
-                let dy = match event.physical_key {
-                    KeyCode::ArrowDown => BODY_LINE * 3.0,
-                    KeyCode::ArrowUp => -BODY_LINE * 3.0,
-                    KeyCode::PageDown | KeyCode::Space => page,
-                    KeyCode::PageUp => -page,
-                    KeyCode::Home => -renderer.content_height,
-                    KeyCode::End => renderer.content_height,
-                    KeyCode::Escape => std::process::exit(0),
-                    _ => 0.0,
-                };
-                if dy != 0.0 && renderer.scroll_by(dy) {
-                    let _ = renderer.paint();
-                }
-            }
-
-            Event::RedrawRequested(_) => {
+        Ev::Wheel(notches) => {
+            stop_autoscroll(&mut autoscroll, &window);
+            if renderer.scroll_by(-notches * BODY_LINE * 3.0) {
                 let _ = renderer.paint();
             }
+        }
 
-            _ => {}
+        Ev::Key { vk, ctrl, shift } => {
+            // A key press only cancels autoscroll; Escape here must not close.
+            if stop_autoscroll(&mut autoscroll, &window) {
+                swallow_char = true;
+                return;
+            }
+            swallow_char = false;
+
+            if ctrl && vk == VK_F {
+                renderer.open_search();
+                let _ = renderer.paint();
+                return;
+            }
+            if ctrl && vk == VK_C {
+                let text = renderer.selected_text();
+                if !text.is_empty() {
+                    let _ = copy_to_clipboard(window.hwnd(), &text);
+                }
+                return;
+            }
+            if ctrl && vk == VK_A {
+                renderer.select_all();
+                let _ = renderer.paint();
+                return;
+            }
+            if renderer.search.is_some() {
+                match vk {
+                    VK_ESCAPE => {
+                        renderer.search = None;
+                        let _ = renderer.paint();
+                        return;
+                    }
+                    VK_RETURN | VK_F3 => {
+                        renderer.step_search(!shift);
+                        let _ = renderer.paint();
+                        return;
+                    }
+                    VK_BACK => {
+                        renderer.edit_query(|query| {
+                            query.pop();
+                        });
+                        let _ = renderer.paint();
+                        return;
+                    }
+                    // Space is typed into the query (it arrives as Ev::Char)
+                    // rather than paging down.
+                    VK_SPACE => return,
+                    _ => {}
+                }
+            }
+
+            let page = renderer.view.1 * 0.9;
+            let dy = match vk {
+                VK_DOWN => BODY_LINE * 3.0,
+                VK_UP => -BODY_LINE * 3.0,
+                VK_NEXT | VK_SPACE => page,
+                VK_PRIOR => -page,
+                VK_HOME => -renderer.content_height,
+                VK_END => renderer.content_height,
+                VK_ESCAPE => std::process::exit(0),
+                _ => 0.0,
+            };
+            if dy != 0.0 && renderer.scroll_by(dy) {
+                let _ = renderer.paint();
+            }
+        }
+
+        Ev::Char(c) => {
+            if std::mem::take(&mut swallow_char) {
+                return;
+            }
+            // Printable input goes to the open search query. Ctrl+letter
+            // arrives as a control character and is dropped here.
+            if renderer.search.is_some() && !c.is_control() {
+                renderer.edit_query(|query| query.push(c));
+                let _ = renderer.paint();
+            }
         }
     });
 }

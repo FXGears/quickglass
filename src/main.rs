@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod native;
+mod win;
 
 /// Collects elapsed-time checkpoints across startup.
 ///
