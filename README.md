@@ -18,7 +18,10 @@ No editor. No tabs. No sidebar. No plugins. No settings. No config files. No int
 Download from [Releases](https://github.com/FXGears/quickglass/releases). No installer. It's one file.
 
 - Windows: `quickglass.exe`
-- Linux (X11): `quickglass-linux-x86_64`. Uses the system libX11, libXext, FreeType and fontconfig.
+- Debian/Ubuntu: `sudo apt install ./quickglass_<version>_amd64.deb`
+- Fedora/RHEL/openSUSE: `sudo dnf install ./quickglass-<version>-1.x86_64.rpm` (or `zypper install`)
+
+The Linux packages install `/usr/bin/quickglass` and register it for `.md` and text files, so it shows up under "Open with" in KDE, GNOME and other freedesktop file managers. Needs X11 (libX11, libXext, FreeType, fontconfig, pulled in as dependencies) and glibc 2.34+. `quickglass-linux-x86_64` is the bare binary for other distros (`chmod +x` after download).
 
 Set as default on Windows:
 

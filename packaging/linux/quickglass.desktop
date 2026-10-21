@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=QuickGlass
+GenericName=Markdown Viewer
+Comment=Fast, lightweight markdown viewer
+Exec=quickglass %f
+Icon=quickglass
+Terminal=false
+Categories=Utility;TextTools;
+MimeType=text/markdown;text/x-markdown;text/plain;
+Keywords=markdown;md;viewer;
