@@ -1,0 +1,31 @@
+[package]
+
+name = "freetype-sys"
+version = "0.23.0"
+authors = ["Coeuvre <coeuvre@gmail.com>"]
+links = "freetype"
+build = "build.rs"
+keywords = ["freetype", "ffi"]
+description = "Low level binding for FreeType font library"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/PistonDevelopers/freetype-sys.git"
+homepage = "https://github.com/PistonDevelopers/freetype-sys"
+edition = "2018"
+
+# Vendored for QuickGlass with two changes from crates.io 0.23.0:
+#   * The `bundled` build compiles FreeType only, with PNG support removed, so
+#     it no longer needs libpng or zlib (and so no longer mis-points its zlib
+#     include). FreeType without PNG still loads TTF/TTC/OTF faces; PNG is only
+#     for embedded colour-bitmap (emoji) glyphs, which this monochrome
+#     coverage renderer never requests.
+#   * `libz-sys` is dropped entirely, since nothing links zlib any more.
+# The default (non-bundled) path is unchanged: it links the system freetype2
+# through pkg-config, which is what the Linux build uses.
+
+[features]
+bundled = []
+
+[build-dependencies]
+cc = "1"
+pkg-config = "0.3.11"

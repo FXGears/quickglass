@@ -1,34 +1,42 @@
 [package]
 name = "quickglass"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
-description = "QuickGlass - Lightweight markdown viewer for Windows"
+description = "QuickGlass - Lightweight markdown viewer"
 license = "GPL-3.0-only"
 
 [features]
 default = []
-# Dev-only startup timing log (%TEMP%\quickglass-startup.log). Off by default so
-# release builds contain no timing code: `cargo build --release --features trace`.
+# Dev-only startup timing log. Off by default so release builds contain no
+# timing code: `cargo build --release --features trace`. On Windows the log is
+# %TEMP%\quickglass-startup.log; on Linux it is $TMPDIR/quickglass-startup.log.
 trace = []
 
 [dependencies]
 pulldown-cmark = { version = "0.12", default-features = false }
 
-# Native Direct2D/DirectWrite renderer and the Win32 window (src/win.rs). All OS
-# components, so this adds no runtime payload.
-windows-numerics = "0.2.0"
+# FreeType is the glyph source on every platform. On Linux it links the system
+# libfreetype (no bundled C); on Windows the vendored patch below builds its own
+# FreeType from source with the `bundled` feature, so no system dependency is
+# needed there.
+freetype-sys = "0.23.0"
 
-[dependencies.windows]
+# ---------------------------------------------------------------------------
+# Windows shell: a thin Win32 window + message pump (src/win.rs) feeding the
+# shared CPU renderer (src/render.rs). The frame is a 32-bit top-down BGRA DIB
+# blitted with SetDIBitsToDevice. Direct2D/DirectWrite are no longer used, so
+# only the window, input, clipboard, shell, registry, hidpi and dwm pieces of
+# the windows crate are enabled. freetype-sys builds vendored FreeType here.
+# ---------------------------------------------------------------------------
+[target.'cfg(windows)'.dependencies]
+freetype-sys = { version = "0.23.0", features = ["bundled"] }
+
+[target.'cfg(windows)'.dependencies.windows]
 version = "0.61.3"
 features = [
     "Win32_Foundation",
-    "Win32_Graphics_Direct2D",
-    "Win32_Graphics_Direct2D_Common",
-    "Win32_Graphics_DirectWrite",
     "Win32_Graphics_Dwm",
-    "Win32_Graphics_Dxgi_Common",
     "Win32_Graphics_Gdi",
-    "Win32_Graphics_Imaging",
     "Win32_System_DataExchange",
     "Win32_System_LibraryLoader",
     "Win32_System_Memory",
@@ -41,8 +49,25 @@ features = [
     "Win32_UI_WindowsAndMessaging",
 ]
 
+# Unconditional: build.rs branches on the *target* OS, and a Linux host
+# cross-building for Windows still needs it (it drives mingw windres).
 [build-dependencies]
 winresource = "0.1"
+
+# ---------------------------------------------------------------------------
+# Linux/Unix shell: X11 (Xlib + MIT-SHM) window (src/x11.rs) feeding the shared
+# CPU renderer (src/render.rs). Fontconfig resolves the face files; FreeType
+# (system libfreetype, linked by the `freetype-sys` dependency above)
+# rasterises the glyphs. Every crate below binds a library already present on a
+# desktop X11 system — libX11, libXext, libfreetype, libfontconfig — so there
+# is no bundled runtime payload. The CPU compositor (alpha-blended
+# rects/lines/glyph coverage) is hand-rolled in render.rs, so no raster crate
+# is pulled in. Coded to the stock X11 client ABI (no XWayland- or
+# compositor-specific calls) for XLibre compatibility.
+# ---------------------------------------------------------------------------
+[target.'cfg(unix)'.dependencies]
+x11 = { version = "2.21.0", features = ["xlib"] }
+yeslogic-fontconfig-sys = "6.0.1"
 
 [profile.release]
 opt-level = "z"
@@ -54,5 +79,12 @@ panic = "abort"
 # Vendored pulldown-cmark 0.12.2 with one change: the HTML entity table is packed
 # (concatenated strings + u16 offsets) instead of 2,125 fat-pointer pairs, saving
 # ~54 KB. Same data and lookup results; see vendor/pulldown-cmark/mk_entities_packed.ps1.
+#
+# Vendored freetype-sys 0.23.0 with its `bundled` build trimmed to FreeType only
+# (PNG support removed, so no libpng/zlib), which both fixes the upstream crate's
+# broken zlib include path when cross-building and drops code the monochrome
+# coverage renderer never uses. The default (non-bundled) path still links the
+# system libfreetype, which is what Linux uses. See vendor/freetype-sys/build.rs.
 [patch.crates-io]
 pulldown-cmark = { path = "vendor/pulldown-cmark" }
+freetype-sys = { path = "vendor/freetype-sys" }

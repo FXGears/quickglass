@@ -1,7 +1,19 @@
-#![windows_subsystem = "windows"]
+// A GUI app on Windows must not attach a console; on Linux there is no such
+// subsystem concept, so the attribute is Windows-only.
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
-mod native;
+mod doc;
+mod render;
+
+#[cfg(windows)]
 mod win;
+#[cfg(windows)]
+use win::run;
+
+#[cfg(unix)]
+mod x11;
+#[cfg(unix)]
+use x11::run;
 
 /// Collects elapsed-time checkpoints across startup.
 ///
@@ -87,10 +99,8 @@ fn main() {
 
     trace.borrow_mut().mark("file_read");
 
-    native::run(
-        &md_content,
-        &title,
-        file_arg.as_deref().map(std::path::Path::new),
-        trace,
-    );
+    run(&md_content,
+    &title,
+    file_arg.as_deref().map(std::path::Path::new),
+    trace,);
 }

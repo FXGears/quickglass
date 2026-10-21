@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.1
+
+**Linux.** QuickGlass now runs on Linux (X11) as well as Windows. Both share one
+renderer that draws the page on the CPU with FreeType, so the two look the same.
+Direct2D and DirectWrite are no longer used.
+
+| | Windows | Linux |
+|---|---|---|
+| Binary | 643,072 bytes | 596,000 bytes |
+| Needs | nothing | libX11, libXext, FreeType, fontconfig |
+
+Fixed:
+
+- Clicking or dragging on a blank line inside a code block no longer moves the
+  selection start to the top of the block.
+- If QuickGlass can't start on Windows (for example a required font is missing), it
+  now shows an error message instead of closing with no feedback.
+- Linux: numpad PgUp/PgDn/Home/End/arrows scroll with NumLock off.
+
 ## v1.0.0
 
 **New engine.** WebView2 is gone. QuickGlass now draws the page itself with Direct2D and
