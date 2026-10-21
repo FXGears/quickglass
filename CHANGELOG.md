@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.2
+
+Fixed:
+
+- Text no longer looks letter-spaced at display scales above 100%. The first layout
+  ran before the display scale was applied, so glyphs were drawn at 100% size on
+  125%/150% spacing until the window was resized.
+- Windows: QuickGlass starts when some Segoe UI or Consolas styles are missing (for
+  example under Wine). It falls back to Arial, Tahoma, Verdana, Courier New or
+  Lucida Console, and as a last resort draws bold, italic and code in the regular face.
+
 ## v1.0.1
 
 **Linux.** QuickGlass now runs on Linux (X11) as well as Windows. Both share one

@@ -1977,7 +1977,7 @@ impl Renderer {
     ///
     /// Args:
     ///     scale: Device pixels per DIP.
-    fn resize(&mut self, scale: f32) {
+    pub(crate) fn resize(&mut self, scale: f32) {
         self.scale = scale;
     }
 }

@@ -637,30 +637,58 @@ struct RegistryFontSource;
 
 impl FontSource for RegistryFontSource {
     fn resolve(&self, kind: FaceKind) -> Option<(String, u32)> {
-        // (default file name under %WINDIR%\Fonts, registry value name).
-        let (default_file, registry_name) = match kind {
-            FaceKind::Sans => ("segoeui.ttf", "Segoe UI (TrueType)"),
-            FaceKind::SansBold => ("segoeuib.ttf", "Segoe UI Bold (TrueType)"),
-            FaceKind::SansItalic => ("segoeuii.ttf", "Segoe UI Italic (TrueType)"),
-            FaceKind::Mono => ("consola.ttf", "Consolas (TrueType)"),
+        // Preferred faces first, then common substitutes, as (file name under
+        // %WINDIR%\Fonts, registry value name). Partial installs (e.g. Wine
+        // prefixes with only the regular Segoe UI) need the substitutes.
+        let candidates: &[(&str, &str)] = match kind {
+            FaceKind::Sans => &[
+                ("segoeui.ttf", "Segoe UI (TrueType)"),
+                ("arial.ttf", "Arial (TrueType)"),
+                ("tahoma.ttf", "Tahoma (TrueType)"),
+                ("verdana.ttf", "Verdana (TrueType)"),
+            ],
+            FaceKind::SansBold => &[
+                ("segoeuib.ttf", "Segoe UI Bold (TrueType)"),
+                ("arialbd.ttf", "Arial Bold (TrueType)"),
+                ("tahomabd.ttf", "Tahoma Bold (TrueType)"),
+                ("verdanab.ttf", "Verdana Bold (TrueType)"),
+            ],
+            FaceKind::SansItalic => &[
+                ("segoeuii.ttf", "Segoe UI Italic (TrueType)"),
+                ("ariali.ttf", "Arial Italic (TrueType)"),
+                ("verdanai.ttf", "Verdana Italic (TrueType)"),
+            ],
+            FaceKind::Mono => &[
+                ("consola.ttf", "Consolas (TrueType)"),
+                ("cour.ttf", "Courier New (TrueType)"),
+                ("lucon.ttf", "Lucida Console (TrueType)"),
+            ],
         };
 
         let fonts_dir = fonts_directory();
-        let default_path = format!("{fonts_dir}\\{default_file}");
-        if std::path::Path::new(&default_path).is_file() {
-            return Some((default_path, 0));
-        }
+        let found = candidates.iter().find_map(|&(file, registry_name)| {
+            let default_path = format!("{fonts_dir}\\{file}");
+            if std::path::Path::new(&default_path).is_file() {
+                return Some(default_path);
+            }
+            // Registry value is usually a bare file name resolved against
+            // %WINDIR%\Fonts, but may be an absolute path.
+            let file = registry_font_file(registry_name)?;
+            let path = if std::path::Path::new(&file).is_absolute() {
+                file
+            } else {
+                format!("{fonts_dir}\\{file}")
+            };
+            std::path::Path::new(&path).is_file().then_some(path)
+        });
 
-        // Fallback: look the display name up in the font registry. The value is
-        // usually a bare file name resolved against %WINDIR%\Fonts, but may be
-        // an absolute path.
-        let file = registry_font_file(registry_name)?;
-        let path = if std::path::Path::new(&file).is_absolute() {
-            file
-        } else {
-            format!("{fonts_dir}\\{file}")
-        };
-        std::path::Path::new(&path).is_file().then_some((path, 0))
+        match found {
+            Some(path) => Some((path, 0)),
+            // No styled or monospace face: draw it with the regular face rather
+            // than refusing to start.
+            None if kind != FaceKind::Sans => self.resolve(FaceKind::Sans),
+            None => None,
+        }
     }
 }
 
@@ -813,6 +841,7 @@ pub fn run(
 
     let physical = Host::client_size(&window);
     let scale = Host::scale(&window);
+    renderer.resize(scale);
     renderer.relayout((physical.0 as f32 / scale, physical.1 as f32 / scale));
     trace.borrow_mut().mark("laid_out");
 

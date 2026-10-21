@@ -1039,6 +1039,7 @@ pub fn run(
 
     let physical = Host::client_size(&window);
     let scale = Host::scale(&window);
+    renderer.resize(scale);
     renderer.relayout((physical.0 as f32 / scale, physical.1 as f32 / scale));
     trace.borrow_mut().mark("laid_out");
 
