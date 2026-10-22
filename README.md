@@ -42,7 +42,7 @@ Done.
 | Wants to manage your files | **No** | *No* | *No* | *No* | *Yes* |
 | Has a settings page | **No** | *Yes* | *Yes* | *Yes* | *Yes* |
 | Has plugin system | **No** | *No* | *Yes* | *No* | *Yes* |
-| Requires account | **No** | *No* | *No* | *No* | *Optional (but it'll ask)* |
+| Requires account | **No** | *No* | *No* | *No* | *Optional* |
 | Phones home | **No** | *No* | *No* | *No* | *Yes* |
 | **Features you'll never use** | **0** | **47** | **63** | **28** | **∞** |
 
